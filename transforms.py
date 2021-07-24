@@ -29,26 +29,41 @@ class Compose(object):
         return image, target
 
 
-class RandomHorizontalFlip(object):
-    def __init__(self, prob):
-        self.prob = prob
+# class RandomHorizontalFlip(object):
+#     def __init__(self, prob):
+#         self.prob = prob
+#
+#     def __call__(self, image, target):
+#         if random.random() < self.prob:
+#             print('flop', image)
+#             height, width = image.shape[-2:]
+#             image = image.flip(-1)
+#             bbox = target["boxes"]
+#             bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
+#             target["boxes"] = bbox
+#             if "masks" in target:
+#                 target["masks"] = target["masks"].flip(-1)
+#             if "keypoints" in target:
+#                 keypoints = target["keypoints"]
+#                 keypoints = _flip_coco_person_keypoints(keypoints, width)
+#                 target["keypoints"] = keypoints
+#         return image, target
 
-    def __call__(self, image, target):
-        if random.random() < self.prob:
-            print('flop', image)
-            height, width = image.shape[-2:]
-            image = image.flip(-1)
-            bbox = target["boxes"]
-            bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-            target["boxes"] = bbox
-            if "masks" in target:
-                target["masks"] = target["masks"].flip(-1)
-            if "keypoints" in target:
-                keypoints = target["keypoints"]
-                keypoints = _flip_coco_person_keypoints(keypoints, width)
-                target["keypoints"] = keypoints
+class RandomHorizontalFlip(T.RandomHorizontalFlip):
+    def forward(self, image: Tensor,
+                target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
+        if torch.rand(1) < self.p:
+            image = F.hflip(image)
+            if target is not None:
+                width, _ = 1000, 1000#F._get_image_size(image)
+                target["boxes"][:, [0, 2]] = width - target["boxes"][:, [2, 0]]
+                if "masks" in target:
+                    target["masks"] = target["masks"].flip(-1)
+                if "keypoints" in target:
+                    keypoints = target["keypoints"]
+                    keypoints = _flip_coco_person_keypoints(keypoints, width)
+                    target["keypoints"] = keypoints
         return image, target
-
 
 class ToTensor(object):
     def __call__(self, image, target):
@@ -72,7 +87,6 @@ class RandomIoUCrop(nn.Module):
 
     def forward(self, image: Tensor,
                 target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
-        print(image)
         if target is None:
             raise ValueError("The targets can't be None for this transform.")
 

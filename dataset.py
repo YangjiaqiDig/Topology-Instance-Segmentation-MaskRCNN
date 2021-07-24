@@ -79,12 +79,12 @@ class CoNSePDataset(torch.utils.data.Dataset):
 
 def get_transform(train):
     transforms = []
-    transforms.append(T.ToTensor())
+    # transforms.append(T.ToTensor())
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
         transforms.append(T.RandomIoUCrop())
-        #transforms.append(T.RandomHorizontalFlip(0.5))
-     #transforms.append(T.ToTensor())
+        # transforms.append(T.RandomHorizontalFlip(0.5))
+    transforms.append(T.ToTensor())
     return T.Compose(transforms)
 
 
@@ -92,5 +92,5 @@ if __name__ == '__main__':
     root = 'data/CoNSeP/train'
     dataset = CoNSePDataset(root, get_transform(train=True))
     print(dataset[0][0].shape)
-    test = np.unique([2,1,6, 4, 8])
+    test = np.unique([2, 1, 6, 4, 8])
     print(test)
