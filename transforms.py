@@ -55,7 +55,7 @@ class RandomHorizontalFlip(T.RandomHorizontalFlip):
         if torch.rand(1) < self.p:
             image = F.hflip(image)
             if target is not None:
-                width, _ = 1000, 1000#F._get_image_size(image)
+                width, _ = 1000, 1000  # F._get_image_size(image)
                 target["boxes"][:, [0, 2]] = width - target["boxes"][:, [2, 0]]
                 if "masks" in target:
                     target["masks"] = target["masks"].flip(-1)
@@ -65,8 +65,14 @@ class RandomHorizontalFlip(T.RandomHorizontalFlip):
                     target["keypoints"] = keypoints
         return image, target
 
-class ToTensor(object):
-    def __call__(self, image, target):
+
+# class ToTensor(object):
+#     def __call__(self, image, target):
+#         image = F.to_tensor(image)
+#         return image, target
+class ToTensor(nn.Module):
+    def forward(self, image: Tensor,
+                target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
         image = F.to_tensor(image)
         return image, target
 
@@ -96,7 +102,7 @@ class RandomIoUCrop(nn.Module):
             elif image.ndimension() == 2:
                 image = image.unsqueeze(0)
 
-        orig_w, orig_h = 1000, 1000#F._get_image_size(image)
+        orig_w, orig_h = 1000, 1000  # F._get_image_size(image)
 
         while True:
             # sample an option
