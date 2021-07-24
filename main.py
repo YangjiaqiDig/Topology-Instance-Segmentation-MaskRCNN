@@ -6,9 +6,11 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from dataset import *
 import utils
 from engine import train_one_epoch, evaluate
+import os
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 print(torch.__version__, 'CUDA: ', torch.cuda.is_available())
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 CONSEP_CLASS_IDS = [
     'other',
     'inflammatory',
