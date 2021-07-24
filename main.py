@@ -93,7 +93,7 @@ def main():
     root_train = 'data/CoNSeP/train'
     root_test = 'data/CoNSeP/test'
     # train on the GPU or on the CPU, if a GPU is not available
-    device = torch.device('cuda:2') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     num_classes = len(CONSEP_CLASS_IDS) + 1
     # use our dataset and defined transformations
     dataset = CoNSePDataset(root_train, get_transform(train=True))

@@ -81,10 +81,15 @@ def get_transform(train):
     transforms = []
     transforms.append(T.ToTensor())
     if train:
+        print('hehhe')
+        transforms.append(T.RandomIoUCrop())
         transforms.append(T.RandomHorizontalFlip(0.5))
     return T.Compose(transforms)
 
 
 if __name__ == '__main__':
     root = 'data/CoNSeP/train'
-    dataset = CoNSePDataset(root, None)
+    dataset = CoNSePDataset(root, get_transform(train=True))
+    print(dataset[0][0].shape)
+    test = np.unique([2,1,6, 4, 8])
+    print(test)
