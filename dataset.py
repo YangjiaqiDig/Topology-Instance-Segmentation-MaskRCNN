@@ -81,9 +81,10 @@ def get_transform(train):
     transforms = []
     transforms.append(T.ToTensor())
     if train:
-        print('hehhe')
-        transforms.append(T.RandomIoUCrop())
         transforms.append(T.RandomHorizontalFlip(0.5))
+        transforms.append(T.RandomIoUCrop())
+        #transforms.append(T.RandomHorizontalFlip(0.5))
+     #transforms.append(T.ToTensor())
     return T.Compose(transforms)
 
 

@@ -35,6 +35,7 @@ class RandomHorizontalFlip(object):
 
     def __call__(self, image, target):
         if random.random() < self.prob:
+            print('flop', image)
             height, width = image.shape[-2:]
             image = image.flip(-1)
             bbox = target["boxes"]
@@ -71,6 +72,7 @@ class RandomIoUCrop(nn.Module):
 
     def forward(self, image: Tensor,
                 target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
+        print(image)
         if target is None:
             raise ValueError("The targets can't be None for this transform.")
 
@@ -80,7 +82,7 @@ class RandomIoUCrop(nn.Module):
             elif image.ndimension() == 2:
                 image = image.unsqueeze(0)
 
-        orig_w, orig_h = F._get_image_size(image)
+        orig_w, orig_h = 1000, 1000#F._get_image_size(image)
 
         while True:
             # sample an option

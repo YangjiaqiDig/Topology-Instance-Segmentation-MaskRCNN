@@ -8,7 +8,7 @@ import utils
 from engine import train_one_epoch, evaluate
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
 print(torch.__version__, 'CUDA: ', torch.cuda.is_available())
 CONSEP_CLASS_IDS = [
     'other',
