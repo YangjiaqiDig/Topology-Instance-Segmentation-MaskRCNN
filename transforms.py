@@ -21,13 +21,10 @@ def _flip_coco_person_keypoints(kps, width):
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
-        print('hey', self.transforms)
 
     def __call__(self, image, target):
         for t in self.transforms:
-            print('t', t)
             image, target = t(image, target)
-            print('hh')
         return image, target
 
 #
@@ -161,7 +158,7 @@ class RandomIoUCrop(nn.Module):
 class DetectionPresetTrain:
     def __init__(self, hflip_prob=0.5, mean=(123., 117., 104.)):
         self.transforms = Compose([
-            RandomIoUCrop(),
+            # RandomIoUCrop(),
             RandomHorizontalFlip(p=hflip_prob),
             ToTensor(),
         ])
