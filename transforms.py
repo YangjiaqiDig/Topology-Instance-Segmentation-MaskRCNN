@@ -1,6 +1,5 @@
 import random
 import torch
-import torch
 import torchvision
 
 from torch import nn, Tensor
@@ -22,20 +21,23 @@ def _flip_coco_person_keypoints(kps, width):
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
+        print('hey', self.transforms)
 
     def __call__(self, image, target):
         for t in self.transforms:
+            print('t', t)
             image, target = t(image, target)
+            print('hh')
         return image, target
 
-
+#
 # class RandomHorizontalFlip(object):
 #     def __init__(self, prob):
 #         self.prob = prob
 #
-#     def __call__(self, image, target):
+#     def __call__(self, image: Tensor, target):
 #         if random.random() < self.prob:
-#             print('flop', image)
+#             print('flop', image.shape[-2:])
 #             height, width = image.shape[-2:]
 #             image = image.flip(-1)
 #             bbox = target["boxes"]
@@ -49,6 +51,8 @@ class Compose(object):
 #                 target["keypoints"] = keypoints
 #         return image, target
 
+
+#
 class RandomHorizontalFlip(T.RandomHorizontalFlip):
     def forward(self, image: Tensor,
                 target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
@@ -66,15 +70,17 @@ class RandomHorizontalFlip(T.RandomHorizontalFlip):
         return image, target
 
 
-# class ToTensor(object):
-#     def __call__(self, image, target):
-#         image = F.to_tensor(image)
-#         return image, target
-class ToTensor(nn.Module):
-    def forward(self, image: Tensor,
-                target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
+class ToTensor(object):
+    def __call__(self, image, target):
         image = F.to_tensor(image)
         return image, target
+
+
+# class ToTensor(nn.Module):
+#     def forward(self, image: Tensor,
+#                 target: Optional[Dict[str, Tensor]] = None) -> Tuple[Tensor, Optional[Dict[str, Tensor]]]:
+#         image = F.to_tensor(image)
+#         return image, target
 
 
 class RandomIoUCrop(nn.Module):
@@ -150,3 +156,23 @@ class RandomIoUCrop(nn.Module):
                 image = F.crop(image, top, left, new_h, new_w)
 
                 return image, target
+
+
+class DetectionPresetTrain:
+    def __init__(self, hflip_prob=0.5, mean=(123., 117., 104.)):
+        self.transforms = Compose([
+            RandomIoUCrop(),
+            RandomHorizontalFlip(p=hflip_prob),
+            ToTensor(),
+        ])
+
+    def __call__(self, img, target):
+        return self.transforms(img, target)
+
+
+class DetectionPresetEval:
+    def __init__(self):
+        self.transforms = ToTensor()
+
+    def __call__(self, img, target):
+        return self.transforms(img, target)

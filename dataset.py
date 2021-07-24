@@ -77,15 +77,23 @@ class CoNSePDataset(torch.utils.data.Dataset):
         return len(self.imgs)
 
 
+# def get_transform(train):
+#     transforms_list = []
+#     transforms_list.append(T.ToTensor())
+#     if train:
+#         print('inside')
+#         transforms_list.append(T.RandomHorizontalFlip(0.5))
+#         print('after one')
+#         transforms_list.append(T.RandomIoUCrop())
+#         print('done')
+#         # transforms.append(T.RandomHorizontalFlip(0.5))
+#     transforms_list.append(T.ToTensor())
+#     print('last compose')
+#     return T.Compose(transforms_list)
+
+
 def get_transform(train):
-    transforms = []
-    # transforms.append(T.ToTensor())
-    if train:
-        transforms.append(T.RandomHorizontalFlip(0.5))
-        transforms.append(T.RandomIoUCrop())
-        # transforms.append(T.RandomHorizontalFlip(0.5))
-    transforms.append(T.ToTensor())
-    return T.Compose(transforms)
+    return T.DetectionPresetTrain() if train else T.DetectionPresetEval()
 
 
 if __name__ == '__main__':
