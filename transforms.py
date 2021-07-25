@@ -158,7 +158,7 @@ class RandomIoUCrop(nn.Module):
 class DetectionPresetTrain:
     def __init__(self, hflip_prob=0.5, mean=(123., 117., 104.)):
         self.transforms = Compose([
-            # RandomIoUCrop(),
+            RandomIoUCrop(),
             RandomHorizontalFlip(p=hflip_prob),
             ToTensor(),
         ])

@@ -95,6 +95,9 @@ def main():
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     num_classes = len(CONSEP_CLASS_IDS) + 1
+
+    # Data loading code
+    print("Loading data")
     # use our dataset and defined transformations
     dataset = CoNSePDataset(root_train, get_transform(train=True))
     dataset_test = CoNSePDataset(root_test, get_transform(train=False))
