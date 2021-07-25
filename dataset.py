@@ -1,9 +1,12 @@
-import os
+import os, sys
 import numpy as np
 import torch
 import scipy.io
 from PIL import Image
 import transforms as T
+import pandas as pd
+
+np.set_printoptions(threshold=sys.maxsize)
 
 '''
 'inst_map' is a 1000x1000 array containing a unique integer for each individual nucleus. i.e the map ranges from 0 to N, 
@@ -13,6 +16,23 @@ import transforms as T
 'inst_type' is a Nx1 array, indicating the type of each instance (in order of inst_map ID)       
 'inst_centroid' is a Nx2 array, giving the x and y coordinates of the centroids of each instance (in order of inst map ID).
 '''
+
+
+def get_accurate_mask(mask_mat, with_type=True):
+    ann_inst = mask_mat['inst_map']
+    if with_type:
+        ann_type = mask_mat["type_map"]
+        # merge classes for CoNSeP (in paper we only utilise 3 nuclei classes and background)
+        # If own dataset is used, then the below may need to be modified
+        ann_type[(ann_type == 3) | (ann_type == 4)] = 3
+        ann_type[(ann_type == 5) | (ann_type == 6) | (ann_type == 7)] = 4
+
+        ann = np.dstack([ann_inst, ann_type])
+        ann = ann.astype("int32")
+    else:
+        ann = np.expand_dims(ann_inst, -1)
+        ann = ann.astype("int32")
+    return ann
 
 
 class CoNSePDataset(torch.utils.data.Dataset):
@@ -27,9 +47,9 @@ class CoNSePDataset(torch.utils.data.Dataset):
         mask_path = os.path.join(self.root, "Labels", self.masks[idx])
         img = Image.open(img_path).convert("RGB")
         mask_mat = scipy.io.loadmat(mask_path)
-        mask = mask_mat['inst_map']
+        ann = get_accurate_mask(mask_mat)
         # convert the Image into a numpy array
-        mask = np.array(mask)
+        mask = np.array(ann[..., 0])
         # instances are encoded as different colors
         obj_ids = np.unique(mask)  # === len(mask_mat['inst_type'])+1 -> N + 1
         # first id is the background, so remove it
@@ -47,12 +67,14 @@ class CoNSePDataset(torch.utils.data.Dataset):
             xmax = np.max(pos[1])
             ymin = np.min(pos[0])
             ymax = np.max(pos[0])
+            if xmin == xmax or ymin == ymax:
+                print('in')
             boxes.append([xmin, ymin, xmax, ymax])
 
         # convert everything into a torch.Tensor
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         # there is only one class
-        labels = torch.tensor(mask_mat['inst_type'], dtype=torch.int64).squeeze()  # torch[N]
+        labels = torch.tensor(ann[..., 1].copy(), dtype=torch.int64).squeeze()  # torch[N], 4 class + background
         masks = torch.as_tensor(masks, dtype=torch.uint8)
 
         image_id = torch.tensor([idx])
@@ -60,13 +82,14 @@ class CoNSePDataset(torch.utils.data.Dataset):
         # suppose all instances are not crowd
         iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
-        target = {}
-        target["boxes"] = boxes
-        target["labels"] = labels
-        target["masks"] = masks
-        target["image_id"] = image_id
-        target["area"] = area
-        target["iscrowd"] = iscrowd
+        target = {
+            "boxes": boxes,
+            "labels": labels,
+            "masks": masks,
+            "image_id": image_id,
+            "area": area,
+            "iscrowd": iscrowd
+        }
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
@@ -99,6 +122,7 @@ def get_transform(train):
 if __name__ == '__main__':
     root = 'data/CoNSeP/train'
     dataset = CoNSePDataset(root, get_transform(train=True))
-    print(dataset[0][0].shape)
+    for each in dataset:
+        print(each[0].shape)
     test = np.unique([2, 1, 6, 4, 8])
-    print(test)
+    # print(test)
