@@ -131,3 +131,5 @@ dmypy.json
 vision/
 tv-training-code.py
 *.out
+.DS*
+._.*
