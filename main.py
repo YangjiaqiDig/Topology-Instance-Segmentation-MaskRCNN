@@ -94,7 +94,7 @@ def main():
     root_test = 'data/CoNSeP/test'
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    num_classes = len(CONSEP_CLASS_IDS) + 1
+    num_classes = 5 #len(CONSEP_CLASS_IDS) + 1
 
     # Data loading code
     print("Loading data")

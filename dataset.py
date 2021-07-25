@@ -35,6 +35,19 @@ def get_accurate_mask(mask_mat, with_type=True):
     return ann
 
 
+def get_bounding_box(img):
+    """Get bounding box coordinate information."""
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+    # due to python indexing, need to add 1 to max
+    # else accessing will be 1px in the box, not out
+    rmax += 1
+    cmax += 1
+    return [rmin, rmax, cmin, cmax]
+
+
 class CoNSePDataset(torch.utils.data.Dataset):
     def __init__(self, root, transforms=None):
         self.root = root
@@ -64,11 +77,11 @@ class CoNSePDataset(torch.utils.data.Dataset):
         for i in range(num_objs):
             pos = np.where(masks[i])
             xmin = np.min(pos[1])
-            xmax = np.max(pos[1])
+            xmax = np.max(pos[1]) + 1
             ymin = np.min(pos[0])
-            ymax = np.max(pos[0])
-            if xmin == xmax or ymin == ymax:
-                print('in')
+            ymax = np.max(pos[0]) + 1
+            # inst_map = np.array(mask == i + 1, np.uint8)
+            # print('hover', get_bounding_box(inst_map))
             boxes.append([xmin, ymin, xmax, ymax])
 
         # convert everything into a torch.Tensor
