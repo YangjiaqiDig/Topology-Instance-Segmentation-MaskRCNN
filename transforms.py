@@ -81,8 +81,8 @@ class ToTensor(object):
 
 
 class RandomIoUCrop(nn.Module):
-    def __init__(self, min_scale: float = 0.3, max_scale: float = 1.0, min_aspect_ratio: float = 0.5,
-                 max_aspect_ratio: float = 2.0, sampler_options: Optional[List[float]] = None, trials: int = 40):
+    def __init__(self, min_scale: float = 0.2, max_scale: float = 0.5, min_aspect_ratio: float = 0.3,
+                 max_aspect_ratio: float = 2.0, sampler_options: Optional[List[float]] = None, trials: int = 500):
         super().__init__()
         # Configuration similar to https://github.com/weiliu89/caffe/blob/ssd/examples/ssd/ssd_coco.py#L89-L174
         self.min_scale = min_scale
@@ -105,7 +105,7 @@ class RandomIoUCrop(nn.Module):
             elif image.ndimension() == 2:
                 image = image.unsqueeze(0)
 
-        orig_w, orig_h = 1000, 1000  # F._get_image_size(image)
+        orig_w, orig_h = F._get_image_size(image)
 
         while True:
             # sample an option

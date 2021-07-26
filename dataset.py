@@ -15,8 +15,6 @@ np.set_printoptions(threshold=sys.maxsize)
 'inst_type' is a Nx1 array, indicating the type of each instance (in order of inst_map ID)       
 'inst_centroid' is a Nx2 array, giving the x and y coordinates of the centroids of each instance (in order of inst map ID).
 '''
-
-
 def get_accurate_mask(mask_mat, with_type=True):
     ann_inst = mask_mat['inst_map']
     inst_type = mask_mat['inst_type']
@@ -111,10 +109,8 @@ class CoNSePDataset(torch.utils.data.Dataset):
             "area": area,
             "iscrowd": iscrowd
         }
-
         if self.transforms is not None:
             img, target = self.transforms(img, target)
-
         return img, target
 
     def __len__(self):

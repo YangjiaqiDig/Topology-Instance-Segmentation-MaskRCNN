@@ -1,6 +1,6 @@
 import torch, torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection import FasterRCNN
+from torchvision.models.detection import FasterRCNN, MaskRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from dataset import *
@@ -14,18 +14,16 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
-print(torch.__version__, 'CUDA: ', torch.cuda.is_available())
+print(torch.__version__, 'CUDA:', torch.cuda.is_available())
 CONSEP_CLASS_IDS = [
     'other',
     'inflammatory',
     'healthy_epithelial',
-    'dysplastic/malignant_epithelial',
-    'fibroblast',
-    'muscle',
-    'endothelial'
+    'fibroblast'
 ]
 
-def example(rank, world_size):
+
+def parallel_setting(rank, world_size):
     # create default process group
     dist.init_process_group("gloo", rank=rank, world_size=world_size)
     # create local model
@@ -43,6 +41,7 @@ def example(rank, world_size):
     loss_fn(outputs, labels).backward()
     # update parameters
     optimizer.step()
+
 
 def get_model_object_detection():
     # load a model pre-trained pre-trained on COCO
@@ -117,7 +116,7 @@ def main():
     root_test = 'data/CoNSeP/test'
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    num_classes = 5  # len(CONSEP_CLASS_IDS) + 1
+    num_classes = len(CONSEP_CLASS_IDS) + 1
 
     # Data loading code
     print("Loading data")
@@ -128,7 +127,7 @@ def main():
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=1, shuffle=True, num_workers=4,
-        collate_fn=utils.collate_fn)
+        collate_fn=utils.collate_fn)#, pin_memory=False)
 
     data_loader_test = torch.utils.data.DataLoader(
         dataset_test, batch_size=1, shuffle=False, num_workers=4,
@@ -138,7 +137,7 @@ def main():
     model = get_model_instance_segmentation(num_classes)
 
     # world_size = 2
-    # mp.spawn(example,
+    # mp.spawn(parallel_setting,
     #          args=(world_size,),
     #          nprocs=world_size,
     #          join=True)
