@@ -7,6 +7,11 @@ from dataset import *
 import utils
 from engine import train_one_epoch, evaluate
 import os
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.nn as nn
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
 print(torch.__version__, 'CUDA: ', torch.cuda.is_available())
@@ -20,6 +25,24 @@ CONSEP_CLASS_IDS = [
     'endothelial'
 ]
 
+def example(rank, world_size):
+    # create default process group
+    dist.init_process_group("gloo", rank=rank, world_size=world_size)
+    # create local model
+    model = nn.Linear(10, 10).to(rank)
+    # construct DDP model
+    ddp_model = DDP(model, device_ids=[rank])
+    # define loss function and optimizer
+    loss_fn = nn.MSELoss()
+    optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)
+
+    # forward pass
+    outputs = ddp_model(torch.randn(20, 10).to(rank))
+    labels = torch.randn(20, 10).to(rank)
+    # backward pass
+    loss_fn(outputs, labels).backward()
+    # update parameters
+    optimizer.step()
 
 def get_model_object_detection():
     # load a model pre-trained pre-trained on COCO
@@ -94,7 +117,7 @@ def main():
     root_test = 'data/CoNSeP/test'
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    num_classes = len(CONSEP_CLASS_IDS) + 1
+    num_classes = 5  # len(CONSEP_CLASS_IDS) + 1
 
     # Data loading code
     print("Loading data")
@@ -104,7 +127,7 @@ def main():
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=2, shuffle=True, num_workers=4,
+        dataset, batch_size=1, shuffle=True, num_workers=4,
         collate_fn=utils.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
@@ -114,6 +137,14 @@ def main():
     # get the model using our helper function
     model = get_model_instance_segmentation(num_classes)
 
+    # world_size = 2
+    # mp.spawn(example,
+    #          args=(world_size,),
+    #          nprocs=world_size,
+    #          join=True)
+    # if torch.cuda.device_count() > 1:
+    #     print("Let's use", torch.cuda.device_count(), "GPUs!")
+    #     model = torch.nn.parallel.DistributedDataParallel(model)
     # move model to the right device
     model.to(device)
 
