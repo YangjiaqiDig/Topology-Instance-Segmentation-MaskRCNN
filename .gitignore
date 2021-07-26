@@ -133,3 +133,4 @@ tv-training-code.py
 *.out
 .DS*
 ._.*
+.*
