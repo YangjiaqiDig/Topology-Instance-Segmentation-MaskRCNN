@@ -21,7 +21,8 @@ import torch.utils.data
 import torchvision
 import torchvision.models.detection
 import torchvision.models.detection.mask_rcnn
-
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from dataset import CoNSePDataset
 from group_by_aspect_ratio import GroupedBatchSampler, create_aspect_ratio_groups
 from engine import train_one_epoch, evaluate
@@ -32,6 +33,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
 def get_dataset(name, image_set, transform, data_path):
     paths = {
         "consep": (data_path, CoNSePDataset, 5),
+        "cpm17": (),
+        "kumar": ()
     }
     p, ds_fn, num_classes = paths[name]
     current_path = p + image_set
@@ -42,7 +45,7 @@ def get_args_parser(add_help=True):
     import argparse
     parser = argparse.ArgumentParser(description='PyTorch Detection Training', add_help=add_help)
 
-    parser.add_argument('--data-path', default='data/CoNSeP/', help='dataset')
+    parser.add_argument('--data-path', default='data/training_data/consep/', help='dataset')
     parser.add_argument('--dataset', default='consep', help='dataset')
     parser.add_argument('--model', default='maskrcnn_resnet50_fpn', help='model')
     parser.add_argument('--device', default='cuda', help='device')
@@ -114,7 +117,7 @@ def main(args):
     # Data loading code
     print("Loading data")
     dataset, num_classes = get_dataset(args.dataset, "train", get_transform(train=True), args.data_path)
-    dataset_test, _ = get_dataset(args.dataset, "test", get_transform(train=False), args.data_path)
+    dataset_test, _ = get_dataset(args.dataset, "valid", get_transform(train=False), args.data_path)
 
     print("Creating data loaders")
     if args.distributed:
@@ -141,16 +144,33 @@ def main(args):
         collate_fn=utils.collate_fn)
 
     print("Creating model")
+    # IMAGE_RESIZE_MODE = "crop"
+    # IMAGE_MIN_DIM = 256
+    # IMAGE_MAX_DIM = 256
+    # IMAGE_MIN_SCALE = 0  # 2.0
     kwargs = {
         "trainable_backbone_layers": args.trainable_backbone_layers,
-        "min_size": 300,
-        "max_size": 500
+        # "min_size": 256,
+        # "max_size": 256
     }
     if "rcnn" in args.model:
         if args.rpn_score_thresh is not None:
             kwargs["rpn_score_thresh"] = args.rpn_score_thresh
-    model = torchvision.models.detection.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained,
-                                                              **kwargs)
+
+    # num_classes = 91
+    model = torchvision.models.detection.__dict__[args.model]( pretrained=True, **kwargs) #num_classes=num_classes,
+    # get number of input features for the classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # replace the pre-trained head with a new one
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+
+    # now get the number of input features for the mask classifier
+    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
+    hidden_layer = 256
+    # and replace the mask predictor with a new one
+    model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask,
+                                                       hidden_layer,
+                                                       num_classes)
     model.to(device)
     if args.distributed and args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)

@@ -134,3 +134,5 @@ tv-training-code.py
 .DS*
 ._.*
 .*
+results*
+testImages*

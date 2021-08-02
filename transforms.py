@@ -28,25 +28,25 @@ class Compose(object):
         return image, target
 
 #
-# class RandomHorizontalFlip(object):
-#     def __init__(self, prob):
-#         self.prob = prob
-#
-#     def __call__(self, image: Tensor, target):
-#         if random.random() < self.prob:
-#             print('flop', image.shape[-2:])
-#             height, width = image.shape[-2:]
-#             image = image.flip(-1)
-#             bbox = target["boxes"]
-#             bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-#             target["boxes"] = bbox
-#             if "masks" in target:
-#                 target["masks"] = target["masks"].flip(-1)
-#             if "keypoints" in target:
-#                 keypoints = target["keypoints"]
-#                 keypoints = _flip_coco_person_keypoints(keypoints, width)
-#                 target["keypoints"] = keypoints
-#         return image, target
+class RandomHorizontalFlip2(object):
+    def __init__(self, prob):
+        self.prob = prob
+
+    def __call__(self, image: Tensor, target):
+        if random.random() < self.prob:
+            print('flop', image.shape[-2:])
+            height, width = image.shape[-2:]
+            image = image.flip(-1)
+            bbox = target["boxes"]
+            bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
+            target["boxes"] = bbox
+            if "masks" in target:
+                target["masks"] = target["masks"].flip(-1)
+            if "keypoints" in target:
+                keypoints = target["keypoints"]
+                keypoints = _flip_coco_person_keypoints(keypoints, width)
+                target["keypoints"] = keypoints
+        return image, target
 
 
 #
@@ -56,7 +56,7 @@ class RandomHorizontalFlip(T.RandomHorizontalFlip):
         if torch.rand(1) < self.p:
             image = F.hflip(image)
             if target is not None:
-                width, _ = 1000, 1000  # F._get_image_size(image)
+                width, _ = F._get_image_size(image)
                 target["boxes"][:, [0, 2]] = width - target["boxes"][:, [2, 0]]
                 if "masks" in target:
                     target["masks"] = target["masks"].flip(-1)
@@ -158,7 +158,7 @@ class RandomIoUCrop(nn.Module):
 class DetectionPresetTrain:
     def __init__(self, hflip_prob=0.5, mean=(123., 117., 104.)):
         self.transforms = Compose([
-            RandomIoUCrop(),
+            # RandomIoUCrop(),
             RandomHorizontalFlip(p=hflip_prob),
             ToTensor(),
         ])
