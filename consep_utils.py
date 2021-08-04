@@ -1,16 +1,25 @@
 from dataset import CoNSePDataset
 import torch
 import torch.utils.data
-import torchvision
+import numpy as np
 
-def _coco_remove_images_without_annotations(dataset, cat_list=None):
+def _coco_remove_images_without_annotations(dataset):
     def _has_only_empty_bbox(anno):
-        return all(any(o <= 1 for o in obj["bbox"][2:]) for obj in anno)
-
-    def _count_visible_keypoints(anno):
-        return sum(sum(1 for v in ann["keypoints"][2::3] if v > 0) for ann in anno)
-
-    min_keypoints_per_image = 10
+        obj_ids = np.unique(anno)[1:]
+        num_valid_ids = []
+        for i in obj_ids:
+            mask_map = anno == i
+            pos = np.where(mask_map)
+            xmin = np.min(pos[1])
+            xmax = np.max(pos[1])
+            ymin = np.min(pos[0])
+            ymax = np.max(pos[0])
+            if xmax == xmin or ymax == ymin:
+                continue 
+            num_valid_ids.append(i)
+        return len(num_valid_ids) == 0
+    def _has_only_background(anno):
+        return anno.sum() == 0
 
     def _has_valid_annotation(anno):
         # if it's empty, there is no annotation
@@ -19,26 +28,17 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
         # if all boxes have close to zero area, there is no annotation
         if _has_only_empty_bbox(anno):
             return False
-        # keypoints task have a slight different critera for considering
-        # if an annotation is valid
-        if "keypoints" not in anno[0]:
-            return True
-        # for keypoint detection tasks, only consider valid images those
-        # containing at least min_keypoints_per_image
-        if _count_visible_keypoints(anno) >= min_keypoints_per_image:
-            return True
-        return False
+        if _has_only_background(anno):
+            return False
+        return True
 
-    assert isinstance(dataset, torchvision.datasets.CocoDetection)
+    assert isinstance(dataset, torch.utils.data.Dataset)
     ids = []
     for ds_idx, img_id in enumerate(dataset.ids):
-        ann_ids = dataset.coco.getAnnIds(imgIds=img_id, iscrowd=None)
-        anno = dataset.coco.loadAnns(ann_ids)
-        if cat_list:
-            anno = [obj for obj in anno if obj["category_id"] in cat_list]
+        _, anno, _ = dataset._CoNSePDataset__get_patch_item(ds_idx)
         if _has_valid_annotation(anno):
             ids.append(ds_idx)
-
+    print('has_valid_annotation number of patches:', len(ids), '/', len(dataset.ids))
     dataset = torch.utils.data.Subset(dataset, ids)
     return dataset
 

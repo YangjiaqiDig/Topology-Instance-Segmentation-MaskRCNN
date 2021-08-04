@@ -15,7 +15,7 @@ the number of epochs should be adapted so that we have the same number of iterat
 import datetime
 import os
 import time
-
+from coco_utils import *
 import torch
 import torch.utils.data
 import torchvision
@@ -23,7 +23,7 @@ import torchvision.models.detection
 import torchvision.models.detection.mask_rcnn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
-from dataset import CoNSePDataset
+from consep_utils import get_consep
 from group_by_aspect_ratio import GroupedBatchSampler, create_aspect_ratio_groups
 from engine import train_one_epoch, evaluate
 from dataset import get_transform
@@ -32,7 +32,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
-        "consep": (data_path, CoNSePDataset, 5),
+        "consep": (data_path, get_consep, 5),
         "cpm17": (),
         "kumar": ()
     }
@@ -49,7 +49,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--dataset', default='consep', help='dataset')
     parser.add_argument('--model', default='maskrcnn_resnet50_fpn', help='model')
     parser.add_argument('--device', default='cuda', help='device')
-    parser.add_argument('-b', '--batch-size', default=2, type=int,
+    parser.add_argument('-b', '--batch-size', default=4, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     parser.add_argument('--epochs', default=20, type=int, metavar='N',
                         help='number of total epochs to run')
@@ -74,7 +74,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--output-dir', default='results/', help='path where to save')
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
-    parser.add_argument('--aspect-ratio-group-factor', default=3, type=int)
+    parser.add_argument('--aspect-ratio-group-factor', default=3, type=int) #3
     parser.add_argument('--rpn-score-thresh', default=None, type=float, help='rpn score threshold for faster-rcnn')
     parser.add_argument('--trainable-backbone-layers', default=None, type=int,
                         help='number of trainable layers of backbone')
@@ -144,10 +144,6 @@ def main(args):
         collate_fn=utils.collate_fn)
 
     print("Creating model")
-    # IMAGE_RESIZE_MODE = "crop"
-    # IMAGE_MIN_DIM = 256
-    # IMAGE_MAX_DIM = 256
-    # IMAGE_MIN_SCALE = 0  # 2.0
     kwargs = {
         "trainable_backbone_layers": args.trainable_backbone_layers,
         # "min_size": 256,
@@ -157,8 +153,7 @@ def main(args):
         if args.rpn_score_thresh is not None:
             kwargs["rpn_score_thresh"] = args.rpn_score_thresh
 
-    # num_classes = 91
-    model = torchvision.models.detection.__dict__[args.model]( pretrained=True, **kwargs) #num_classes=num_classes,
+    model = torchvision.models.detection.__dict__[args.model](pretrained=True, **kwargs) #num_classes=num_classes,
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     # replace the pre-trained head with a new one

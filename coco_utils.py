@@ -166,6 +166,8 @@ def convert_to_coco_api(ds):
         iscrowd = targets['iscrowd'].tolist()
         if 'masks' in targets:
             masks = targets['masks']
+            if len(masks.shape) < 3:
+                print(img_idx, targets, len(ds))
             # make masks Fortran contiguous for coco_mask
             masks = masks.permute(0, 2, 1).contiguous().permute(0, 2, 1)
         if 'keypoints' in targets:
@@ -198,8 +200,8 @@ def get_coco_api_from_dataset(dataset):
     for i in range(10):
         if isinstance(dataset, torchvision.datasets.CocoDetection):
             break
-        if isinstance(dataset, torch.utils.data.Subset):
-            dataset = dataset.dataset
+        # if isinstance(dataset, torch.utils.data.Subset):
+        #     dataset = dataset.dataset
     if isinstance(dataset, torchvision.datasets.CocoDetection):
         return dataset.coco
     return convert_to_coco_api(dataset)

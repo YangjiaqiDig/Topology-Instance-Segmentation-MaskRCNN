@@ -9,6 +9,7 @@ from convert_image import *
 from torchvision.transforms import functional as F
 import glob
 import cv2
+from consep_utils import *
 np.set_printoptions(threshold=sys.maxsize)
 
 
@@ -144,15 +145,13 @@ class CoNSePDataset(torch.utils.data.Dataset):
     def __init__(self, root, transforms=None):
         self.root = root
         self.transforms = transforms
-        self.imgs_name = list(sorted(os.listdir(os.path.join(root, '250x250_50x50'))))
-        self.masks_name = list(sorted(os.listdir(os.path.join(root, '250x250_50x50'))))
-    
-    def __get_patch_item(self, idx):
-        file_list = []
+        self.ids = []
         data_dir = os.path.join(self.root, '250x250_50x50')
-        file_list.extend(glob.glob("%s/*.npy" % data_dir))
-        file_list.sort()  # to always ensure same input ordering
-        path = file_list[idx]
+        self.ids.extend(glob.glob("%s/*.npy" % data_dir))
+        self.ids.sort()  # to always ensure same input ordering
+
+    def __get_patch_item(self, idx):
+        path = self.ids[idx]
         data = np.load(path)
 
         # split stacked channel into image and label
@@ -213,7 +212,7 @@ class CoNSePDataset(torch.utils.data.Dataset):
         return img, target
 
     def __len__(self):
-        return len(self.masks_name)
+        return len(self.ids)
 
 
 def get_transform(train):
@@ -221,9 +220,40 @@ def get_transform(train):
 
 
 if __name__ == '__main__':
-    root = 'data/training_data/consep/train'
+    root = 'data/training_data/consep/valid'
     dataset = CoNSePDataset(root, get_transform(train=True))
-    # dataset[0]
+    # dataset[800]
+    _, anno, _ = dataset._CoNSePDataset__get_patch_item(800)
+    def _has_only_empty_bbox(anno):
+        obj_ids = np.unique(anno)[1:]
+        num_valid_ids = []
+        for i in obj_ids:
+            mask_map = anno == i
+            pos = np.where(mask_map)
+            xmin = np.min(pos[1])
+            xmax = np.max(pos[1])
+            ymin = np.min(pos[0])
+            ymax = np.max(pos[0])
+            if xmax == xmin or ymax == ymin:
+                continue 
+            num_valid_ids.append(i)
+        return len(num_valid_ids) == 0
+    def _has_only_background(anno):
+        return anno.sum() == 0
+
+    def _has_valid_annotation(anno):
+        # if it's empty, there is no annotation
+        if len(anno) == 0:
+            return False
+        # if all boxes have close to zero area, there is no annotation
+        if _has_only_empty_bbox(anno):
+            return False
+        if _has_only_background(anno):
+            return False
+        return True
+    if _has_valid_annotation(anno):
+        print('innnnn')
+    ss
     for i in range(27):
         # print(i)
         dataset[i]
